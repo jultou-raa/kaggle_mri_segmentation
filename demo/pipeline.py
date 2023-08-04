@@ -124,6 +124,7 @@ def pre_treatement_pipeline(
 
 def training_pipeline(
     study_path: pathlib.Path,
+    num_workers=1,
     num_nodes=1,
     batch_size=32,
     max_epochs=5,
@@ -138,9 +139,9 @@ def training_pipeline(
 
     train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
 
-    train_loader = DataLoader(train_dataset, num_workers=4, batch_size=batch_size)
+    train_loader = DataLoader(train_dataset, num_workers=num_workers, batch_size=batch_size)
     validation_loader = DataLoader(
-        validation_dataset, num_workers=4, batch_size=batch_size
+        validation_dataset, num_workers=num_workers, batch_size=batch_size
     )
 
     trainer = pl.Trainer(
