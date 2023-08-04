@@ -1,0 +1,13 @@
+data/**/*.tif
+data/**/*.csv
+
+lightning_logs/**/*.*
+
+*.egg-info
+*.pyc
+
+
+*.ckpt
+*.pt
+*.ipynb
+*.onnx
