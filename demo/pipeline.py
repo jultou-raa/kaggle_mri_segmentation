@@ -7,7 +7,15 @@ from sklearn.model_selection import train_test_split
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from demo.dataset import TCIADataset
+from demo.model import UNet
+from torch.utils.data import DataLoader
+import lightning as pl
+from lightning.pytorch.tuner.tuning import Tuner
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from torch.onnx import export
 import torch
+import pathlib
+
 
 
 def create_image_database(study: Study):
@@ -112,6 +120,34 @@ def pre_treatement_pipeline(
 
     return train_dataset, validation_dataset, test_dataset
 
+def training_pipeline(study_path: pathlib.Path, num_nodes=1, batch_size=32, max_epochs=5, LEARNING_RATE=0.001):
+    model = UNet(1, 0.001)
+
+    export(model, torch.zeros((1, 3, 256, 256)), "model.onnx", verbose=True)
+
+    study = Study(study_path)  # pathlib.Path(__file__).parent.parent / "data"
+
+    train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
+    
+    train_loader = DataLoader(train_dataset, num_workers=4, batch_size=batch_size)
+    validation_loader = DataLoader(validation_dataset, num_workers=4, batch_size=batch_size)
+
+    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min")], num_nodes=num_nodes, max_epochs=max_epochs)
+    tuner = Tuner(trainer)
+
+    # finds learning rate automatically
+    # sets hparams.lr or hparams.learning_rate to that learning rate
+    tuner.lr_find(model, train_dataloaders=train_loader, val_dataloaders=validation_loader)
+
+    # Train the model
+    trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=validation_loader)   
+
+    # test the model
+    trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=4))
+
+    # save the model
+    trainer.save_checkpoint("best_model.ckpt")
+    export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=True)
 
 if __name__ == "__main__":
     import pathlib
@@ -121,33 +157,35 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    def visualize_augmentations(dataset, idx=0, samples=5):
-        dataset = copy.deepcopy(dataset)
-        dataset.transform = A.Compose(
-            [
-                t
-                for t in dataset.transform
-                if not isinstance(t, ToTensorV2)
-            ]
-        )
-        figure, ax = plt.subplots(nrows=samples, ncols=2, figsize=(10, 24))
-        for i in range(samples):
-            image, mask = dataset[idx]
-            ax[i, 0].imshow(image)
-            ax[i, 1].imshow(mask, interpolation="nearest")
-            ax[i, 0].set_title("Augmented image")
-            ax[i, 1].set_title("Augmented mask")
-            ax[i, 0].set_axis_off()
-            ax[i, 1].set_axis_off()
-        figure.tight_layout()
-        plt.show()
+    # def visualize_augmentations(dataset, idx=0, samples=5):
+    #     dataset = copy.deepcopy(dataset)
+    #     dataset.transform = A.Compose(
+    #         [
+    #             t
+    #             for t in dataset.transform
+    #             if not isinstance(t, ToTensorV2)
+    #         ]
+    #     )
+    #     figure, ax = plt.subplots(nrows=samples, ncols=2, figsize=(10, 24))
+    #     for i in range(samples):
+    #         image, mask = dataset[idx]
+    #         ax[i, 0].imshow(image)
+    #         ax[i, 1].imshow(mask, interpolation="nearest")
+    #         ax[i, 0].set_title("Augmented image")
+    #         ax[i, 1].set_title("Augmented mask")
+    #         ax[i, 0].set_axis_off()
+    #         ax[i, 1].set_axis_off()
+    #     figure.tight_layout()
+    #     plt.show()
 
-    study = Study(pathlib.Path(__file__).parent.parent / "data")
+    # study = Study(pathlib.Path(__file__).parent.parent / "data")
 
-    train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
+    # train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
 
-    print(f"Train Dataset: {len(train_dataset)}")
-    print(f"Validation Dataset: {len(validation_dataset)}")
-    print(f"Test Dataset: {len(validation_dataset)}")
+    # print(f"Train Dataset: {len(train_dataset)}")
+    # print(f"Validation Dataset: {len(validation_dataset)}")
+    # print(f"Test Dataset: {len(validation_dataset)}")
 
-    visualize_augmentations(train_dataset, idx=20)
+    # visualize_augmentations(train_dataset, idx=20)
+
+    training_pipeline(study_path=pathlib.Path(__file__).parent.parent / "data", batch_size=2)

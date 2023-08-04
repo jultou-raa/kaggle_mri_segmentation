@@ -5,10 +5,6 @@
 import torch
 import torch.nn as nn
 import lightning as pl
-from lightning.pytorch.tuner.tuning import Tuner
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from torch.utils.data import DataLoader
-from torch.onnx import export
 from torchmetrics.functional.image import multiscale_structural_similarity_index_measure
 
 class UNet(pl.LightningModule):
@@ -98,6 +94,10 @@ if __name__ == "__main__":
     import pathlib
     from demo.pipeline import pre_treatement_pipeline
     from demo.study import Study
+    from torch.utils.data import DataLoader
+    from lightning.pytorch.tuner.tuning import Tuner
+    from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+    from torch.onnx import export
     
     
     model = UNet(1, 0.001)
