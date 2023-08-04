@@ -5,11 +5,11 @@ import pathlib
 import queue
 import re
 
+import cv2
 import natsort
 import numpy
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import cv2
 
 """ This file handle a class named Patient. 
 This class has several attributes :

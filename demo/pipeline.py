@@ -2,20 +2,21 @@
 
 """This file will have nodes to create a pipeline."""
 
-from demo.study import Study
-from sklearn.model_selection import train_test_split
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
-from demo.dataset import TCIADataset
-from demo.model import UNet
-from torch.utils.data import DataLoader
-import lightning as pl
-from lightning.pytorch.tuner.tuning import Tuner
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from torch.onnx import export
-import torch
 import pathlib
 
+import albumentations as A
+import lightning as pl
+import torch
+from albumentations.pytorch.transforms import ToTensorV2
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.tuner.tuning import Tuner
+from sklearn.model_selection import train_test_split
+from torch.onnx import export
+from torch.utils.data import DataLoader
+
+from demo.dataset import TCIADataset
+from demo.model import UNet
+from demo.study import Study
 
 
 def create_image_database(study: Study):
@@ -120,27 +121,46 @@ def pre_treatement_pipeline(
 
     return train_dataset, validation_dataset, test_dataset
 
-def training_pipeline(study_path: pathlib.Path, num_nodes=1, batch_size=32, max_epochs=5, LEARNING_RATE=0.001):
-    model = UNet(1, 0.001)
+
+def training_pipeline(
+    study_path: pathlib.Path,
+    num_nodes=1,
+    batch_size=32,
+    max_epochs=5,
+    learning_rate=0.001,
+    strategy="auto",
+):
+    model = UNet(1, learning_rate)
 
     export(model, torch.zeros((1, 3, 256, 256)), "model.onnx", verbose=True)
 
     study = Study(study_path)  # pathlib.Path(__file__).parent.parent / "data"
 
     train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
-    
-    train_loader = DataLoader(train_dataset, num_workers=4, batch_size=batch_size)
-    validation_loader = DataLoader(validation_dataset, num_workers=4, batch_size=batch_size)
 
-    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min")], num_nodes=num_nodes, max_epochs=max_epochs)
+    train_loader = DataLoader(train_dataset, num_workers=4, batch_size=batch_size)
+    validation_loader = DataLoader(
+        validation_dataset, num_workers=4, batch_size=batch_size
+    )
+
+    trainer = pl.Trainer(
+        strategy=strategy,
+        callbacks=[EarlyStopping(monitor="val_loss", mode="min")],
+        num_nodes=num_nodes,
+        max_epochs=max_epochs,
+    )
     tuner = Tuner(trainer)
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
-    tuner.lr_find(model, train_dataloaders=train_loader, val_dataloaders=validation_loader)
+    tuner.lr_find(
+        model, train_dataloaders=train_loader, val_dataloaders=validation_loader
+    )
 
     # Train the model
-    trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=validation_loader)   
+    trainer.fit(
+        model=model, train_dataloaders=train_loader, val_dataloaders=validation_loader
+    )
 
     # test the model
     trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=4))
@@ -149,10 +169,12 @@ def training_pipeline(study_path: pathlib.Path, num_nodes=1, batch_size=32, max_
     trainer.save_checkpoint("best_model.ckpt")
     export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=True)
 
+
 if __name__ == "__main__":
-    import pathlib
-    import logging
     import copy
+    import logging
+    import pathlib
+
     import matplotlib.pyplot as plt
 
     logging.basicConfig(level=logging.DEBUG)
@@ -188,4 +210,6 @@ if __name__ == "__main__":
 
     # visualize_augmentations(train_dataset, idx=20)
 
-    training_pipeline(study_path=pathlib.Path(__file__).parent.parent / "data", batch_size=2)
+    training_pipeline(
+        study_path=pathlib.Path(__file__).parent.parent / "data", batch_size=2
+    )
