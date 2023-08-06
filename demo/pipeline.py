@@ -141,6 +141,7 @@ def training_pipeline(
     batch_size=32,
     max_epochs=5,
     learning_rate=0.001,
+    auto_lr = True,
     strategy="auto",
 ):
     model = UNet(1, learning_rate)
@@ -161,13 +162,15 @@ def training_pipeline(
         num_nodes=num_nodes,
         max_epochs=max_epochs,
     )
-    tuner = Tuner(trainer)
 
-    # finds learning rate automatically
-    # sets hparams.lr or hparams.learning_rate to that learning rate
-    tuner.lr_find(
-        model, train_dataloaders=train_loader, val_dataloaders=validation_loader
-    )
+    if auto_lr:
+        tuner = Tuner(trainer)
+
+        # finds learning rate automatically
+        # sets hparams.lr or hparams.learning_rate to that learning rate
+        tuner.lr_find(
+            model, train_dataloaders=train_loader, val_dataloaders=validation_loader
+        )
 
     # Train the model
     trainer.fit(
