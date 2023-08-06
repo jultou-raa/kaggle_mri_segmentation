@@ -29,6 +29,10 @@ def load_model():
     except FileNotFoundError:
         return None
 
+def eval_model(model):
+    with torch.no_grad():
+        return model(image_to_predict).cpu().detach().numpy().squeeze().round()
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     
@@ -63,8 +67,7 @@ if __name__ == "__main__":
         im2 = st.image(patient._mri_masks_data[cut_number], caption=f"Patient {patient.patient_id} / Slice {cut_number}")
         if model is not None:
             image_to_predict = torch.unsqueeze(tensor_dataset[cut_number][0],0).to(device())
-            with torch.no_grad():
-                im3 = st.image(model(image_to_predict).detach().numpy().squeeze(), caption=f"Patient {patient.patient_id} / Prediction of Slice {cut_number}")
+            im3 = st.image(eval_model(model), caption=f"Patient {patient.patient_id} / Prediction of Slice {cut_number}")
         
     if animate:
         for i in range(len(patient.mri_images)):

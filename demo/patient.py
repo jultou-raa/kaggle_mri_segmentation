@@ -71,6 +71,13 @@ class Patient:
     def logger(self):
         return logging.getLogger(self.__class__.__name__)
 
+    def _preprocess_masks(self, mask):
+        """This function transforms a cv2 greyscaled mask to a binary mask."""
+        mask = mask / 255
+        mask = mask.round()
+        return mask
+        
+
     def read(self):
         """Populate the class with the mri images and masks.
         masks have the same name as mri images but with a _mask suffix.
@@ -87,8 +94,8 @@ class Patient:
             if file.is_file() and not file.name.endswith("mask.tif")
         ]
 
-        self._mri_masks_data = [cv2.imread(str(mask)) for mask in self.mri_masks]
-        self._mri_images_data = [cv2.imread(str(images)) for images in self.mri_images]
+        self._mri_masks_data = [self._preprocess_masks(cv2.imread(str(mask), flags=cv2.IMREAD_GRAYSCALE)) for mask in self.mri_masks]
+        self._mri_images_data = [cv2.imread(str(images), flags=cv2.IMREAD_COLOR) for images in self.mri_images]
 
         return self
 

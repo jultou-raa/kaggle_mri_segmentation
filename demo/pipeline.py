@@ -8,7 +8,6 @@ import albumentations as A
 import lightning as pl
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.tuner.tuning import Tuner
 from sklearn.model_selection import train_test_split
 from torch.onnx import export
@@ -31,6 +30,17 @@ def create_image_database(study: Study):
         ],
     )
 
+class NormalizeWithMaskBypass(A.BasicTransform):
+    def __init__(self, mean, std, always_apply=False, p=1.0):
+        self.mean = mean
+        self.std = std
+        self.always_apply = always_apply
+        self.p = p
+
+    def __call__(self, image, mask, **kwargs):
+        if image.ndim == 3 and image.shape[-1] > 1:
+            return A.Normalize(mean=self.mean, std=self.std, always_apply=self.always_apply, p=self.p)(image=image)
+        return image
 
 def train_transformer():
     """Apply augmentation to the training set."""
@@ -52,6 +62,7 @@ def train_transformer():
             # The following values are often used to normalize MRI images:
             # Mean: 0.019, 0.027, 0.045
             # Standard deviation: 0.052, 0.058, 0.077
+            # A.Normalize(),
             A.Normalize(mean=(0.019, 0.027, 0.045), std=(0.052, 0.058, 0.077)),
             ToTensorV2(transpose_mask=True),
         ]
@@ -66,6 +77,7 @@ def val_transformer():
             # Mean: 0.019, 0.027, 0.045
             # Standard deviation: 0.052, 0.058, 0.077
             A.Normalize(mean=(0.019, 0.027, 0.045), std=(0.052, 0.058, 0.077)),
+            # A.Normalize(),
             ToTensorV2(transpose_mask=True),
         ]
     )
@@ -133,7 +145,7 @@ def training_pipeline(
 ):
     model = UNet(1, learning_rate)
 
-    export(model, torch.zeros((1, 3, 256, 256)), "model.onnx", verbose=True)
+    export(model, torch.zeros((1, 3, 256, 256)), "model.onnx", verbose=False)
 
     study = Study(study_path)  # pathlib.Path(__file__).parent.parent / "data"
 
@@ -146,7 +158,6 @@ def training_pipeline(
 
     trainer = pl.Trainer(
         strategy=strategy,
-        callbacks=[EarlyStopping(monitor="val_loss", mode="min")],
         num_nodes=num_nodes,
         max_epochs=max_epochs,
     )
@@ -164,11 +175,11 @@ def training_pipeline(
     )
 
     # test the model
-    trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=4))
+    trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=num_workers))
 
     # save the model
     trainer.save_checkpoint("best_model.ckpt")
-    export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=True)
+    export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=False)
 
 
 if __name__ == "__main__":
@@ -178,7 +189,7 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     # def visualize_augmentations(dataset, idx=0, samples=5):
     #     dataset = copy.deepcopy(dataset)
@@ -212,5 +223,5 @@ if __name__ == "__main__":
     # visualize_augmentations(train_dataset, idx=20)
 
     training_pipeline(
-        study_path=pathlib.Path(__file__).parent.parent / "data", batch_size=2
+        study_path=pathlib.Path(__file__).parent.parent / "data", batch_size=3, max_epochs=75, num_workers=6,
     )

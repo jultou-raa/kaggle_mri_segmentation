@@ -5,9 +5,11 @@
 import lightning as pl
 import torch
 import torch.nn as nn
-from torchmetrics.functional.image import \
-    multiscale_structural_similarity_index_measure
-
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchmetrics.functional.image import multiscale_structural_similarity_index_measure
+from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
+from pytorch_lightning.callbacks import Callback
+import matplotlib.pyplot as plt
 
 class UNet(pl.LightningModule):
     def __init__(self, n_classes, learning_rate):
@@ -46,6 +48,30 @@ class UNet(pl.LightningModule):
             nn.ReLU(inplace=True),
         )
 
+    @staticmethod
+    def _dice_loss(y_pred, y_true, smooth=1):
+        # Flatten predictions and labels
+        y_pred = y_pred.view(-1)
+        y_true = y_true.view(-1)
+
+        # Calculate intersection and union
+        intersection = (y_pred * y_true).sum()
+        union = y_pred.sum() + y_true.sum()
+
+        # Calculate Dice coefficient
+        dice = (2.0 * intersection + smooth) / (union + smooth)
+
+        # Calculate Dice loss
+        loss = 1.0 - dice
+
+        return loss
+
+    def configure_callbacks(self):
+        return [
+            EarlyStopping(monitor="val_loss", mode="min", patience=10),
+            LearningRateMonitor("epoch"),
+        ]
+
     def forward(self, x):
         conv1 = self.conv_down1(x)
         x = self.maxpool(conv1)
@@ -73,25 +99,31 @@ class UNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = multiscale_structural_similarity_index_measure(y_hat, y[:, 0:1, :, :])
+        loss = self._dice_loss(y_hat, y.unsqueeze(1))
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = multiscale_structural_similarity_index_measure(y_hat, y[:, 0:1, :, :])
+        loss = self._dice_loss(y_hat, y.unsqueeze(1))
         self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         # this is the test loop
         x, y = batch
         y_hat = self(x)
-        loss = multiscale_structural_similarity_index_measure(y_hat, y[:, 0:1, :, :])
+        loss = self._dice_loss(y_hat, y.unsqueeze(1))
         self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adamax(self.parameters(), lr=self.learning_rate)
+        lr_scheduler = {
+            'scheduler': ReduceLROnPlateau(optimizer, patience=5),
+            'name': 'ReduceLROnPlateau_log',
+            "monitor": "val_loss",
+        }
+        return [optimizer], [lr_scheduler]
 
 
 if __name__ == "__main__":
