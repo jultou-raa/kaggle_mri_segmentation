@@ -30,6 +30,7 @@ def create_image_database(study: Study):
         ],
     )
 
+
 class NormalizeWithMaskBypass(A.BasicTransform):
     def __init__(self, mean, std, always_apply=False, p=1.0):
         self.mean = mean
@@ -39,8 +40,11 @@ class NormalizeWithMaskBypass(A.BasicTransform):
 
     def __call__(self, image, mask, **kwargs):
         if image.ndim == 3 and image.shape[-1] > 1:
-            return A.Normalize(mean=self.mean, std=self.std, always_apply=self.always_apply, p=self.p)(image=image)
+            return A.Normalize(
+                mean=self.mean, std=self.std, always_apply=self.always_apply, p=self.p
+            )(image=image)
         return image
+
 
 def train_transformer():
     """Apply augmentation to the training set."""
@@ -141,7 +145,7 @@ def training_pipeline(
     batch_size=32,
     max_epochs=5,
     learning_rate=0.001,
-    auto_lr = True,
+    auto_lr=True,
     strategy="auto",
 ):
     model = UNet(1, learning_rate)
@@ -152,7 +156,9 @@ def training_pipeline(
 
     train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
 
-    train_loader = DataLoader(train_dataset, num_workers=num_workers, batch_size=batch_size)
+    train_loader = DataLoader(
+        train_dataset, num_workers=num_workers, batch_size=batch_size
+    )
     validation_loader = DataLoader(
         validation_dataset, num_workers=num_workers, batch_size=batch_size
     )
@@ -178,7 +184,9 @@ def training_pipeline(
     )
 
     # test the model
-    trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=num_workers))
+    trainer.test(
+        model=model, dataloaders=DataLoader(test_dataset, num_workers=num_workers)
+    )
 
     # save the model
     trainer.save_checkpoint("best_model.ckpt")
@@ -226,5 +234,8 @@ if __name__ == "__main__":
     # visualize_augmentations(train_dataset, idx=20)
 
     training_pipeline(
-        study_path=pathlib.Path(__file__).parent.parent / "data", batch_size=3, max_epochs=75, num_workers=6,
+        study_path=pathlib.Path(__file__).parent.parent / "data",
+        batch_size=3,
+        max_epochs=75,
+        num_workers=6,
     )

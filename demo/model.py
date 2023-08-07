@@ -3,13 +3,15 @@
 """This file handles the pytorch lightning model and its training."""
 
 import lightning as pl
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchmetrics.functional.image import multiscale_structural_similarity_index_measure
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from pytorch_lightning.callbacks import Callback
-import matplotlib.pyplot as plt
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchmetrics.functional.image import \
+    multiscale_structural_similarity_index_measure
+
 
 class UNet(pl.LightningModule):
     def __init__(self, n_classes, learning_rate):
@@ -119,8 +121,8 @@ class UNet(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adamax(self.parameters(), lr=self.learning_rate)
         lr_scheduler = {
-            'scheduler': ReduceLROnPlateau(optimizer, patience=5),
-            'name': 'ReduceLROnPlateau_log',
+            "scheduler": ReduceLROnPlateau(optimizer, patience=5),
+            "name": "ReduceLROnPlateau_log",
             "monitor": "val_loss",
         }
         return [optimizer], [lr_scheduler]

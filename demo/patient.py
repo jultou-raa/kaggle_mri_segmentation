@@ -1,9 +1,6 @@
 # encoding: utf-8
-import concurrent.futures
 import logging
 import pathlib
-import queue
-import re
 
 import cv2
 import natsort
@@ -76,7 +73,6 @@ class Patient:
         mask = mask / 255
         mask = mask.round()
         return mask
-        
 
     def read(self):
         """Populate the class with the mri images and masks.
@@ -94,8 +90,14 @@ class Patient:
             if file.is_file() and not file.name.endswith("mask.tif")
         ]
 
-        self._mri_masks_data = [self._preprocess_masks(cv2.imread(str(mask), flags=cv2.IMREAD_GRAYSCALE)) for mask in self.mri_masks]
-        self._mri_images_data = [cv2.imread(str(images), flags=cv2.IMREAD_COLOR) for images in self.mri_images]
+        self._mri_masks_data = [
+            self._preprocess_masks(cv2.imread(str(mask), flags=cv2.IMREAD_GRAYSCALE))
+            for mask in self.mri_masks
+        ]
+        self._mri_images_data = [
+            cv2.imread(str(images), flags=cv2.IMREAD_COLOR)
+            for images in self.mri_images
+        ]
 
         return self
 

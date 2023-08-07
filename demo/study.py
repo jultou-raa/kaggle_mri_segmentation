@@ -39,31 +39,21 @@ class Study:
     def create_patient_database(self) -> list[Patient]:
         """For each subfolders in data, create a list of Patient."""
 
-        import_queuing = queue.Queue()
-
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = []
-            for patient_folder in self.study_path.iterdir():
-                if patient_folder.is_dir():
-                    (
-                        institution,
-                        patient_id,
-                        slice_number,
-                    ) = self._extract_info_from_folder_name(patient_folder.name)
-                    patient = Patient(
-                        institution, patient_id, slice_number, self.study_path
-                    )
-                    self.logger.debug(
-                        f"Adding patient {patient.patient_id} to import queue."
-                    )
-                    futures.append(executor.submit(patient.read))
+            futures = [
+                executor.submit(
+                    Patient(institution, patient_id, slice_number, self.study_path).read
+                )
+                for patient_folder in self.study_path.iterdir()
+                if patient_folder.is_dir()
+                for institution, patient_id, slice_number in [
+                    self._extract_info_from_folder_name(patient_folder.name)
+                ]
+            ]
 
-            for future in concurrent.futures.as_completed(futures):
-                import_queuing.put(future.result())
-
-        patient_list = []
-        while not import_queuing.empty():
-            patient_list.append(import_queuing.get())
+        patient_list = [
+            future.result() for future in concurrent.futures.as_completed(futures)
+        ]
 
         return patient_list
 
