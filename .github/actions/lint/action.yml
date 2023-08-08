@@ -28,9 +28,9 @@ runs:
         pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' ~/results/pylint_output.txt)
         anybadge --value=$pylint_note --file=~/results/pylint_note.svg pylint_note
       shell: bash
-    
+
     - name: Archive badge
-        uses: actions/upload-artifact@v3
-        with:
-          name: pylint_note
-          path: ~/results/pylint_note.svg
+      uses: actions/upload-artifact@v3
+      with:
+        name: pylint_note
+        path: ~/results/pylint_note.svg
