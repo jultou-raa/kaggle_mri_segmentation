@@ -48,7 +48,7 @@ jobs:
         tags: jultou/kaggle_mri_demo:latest
 
     - name: Add pylint badge
-      uses: lowlighter/metrics@v4.2.0
+      uses: lowlighter/metrics@v3.33
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         user: username
@@ -58,7 +58,7 @@ jobs:
         pylint_glob: '**/*.py'
 
     - name: Add pytest-coverage badge
-      uses: lowlighter/metrics@v4.2.0
+      uses: lowlighter/metrics@v3.33
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         user: jultou-raa
