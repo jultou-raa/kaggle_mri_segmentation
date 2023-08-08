@@ -1,8 +1,7 @@
 name: Build & Deploy Docker image
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
 
 jobs:
     docker:

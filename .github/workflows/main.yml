@@ -8,16 +8,26 @@ on:
 
 jobs:
   lint:
-    uses: ./.github/workflows/lint.yml
-
-  test:
-    uses: ./.github/workflows/test.yml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Lint code
+        uses: ./actions/lint.yml
 
   codecov:
-    uses: ./.github/workflows/codecov.yml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run tests & codecov
+        uses: ./actions/codecov.yml
 
   build:
-    uses: ./.github/workflows/build.yml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Build code
+        uses: ./actions/build.yml
 
-  metrics:
-    uses: ./.github/workflows/metrics.yml
