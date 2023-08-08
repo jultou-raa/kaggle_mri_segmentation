@@ -11,3 +11,5 @@ lightning_logs/**/*.*
 *.pt
 *.ipynb
 *.onnx
+
+.vscode/*
