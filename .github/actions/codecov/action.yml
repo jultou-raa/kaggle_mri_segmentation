@@ -32,4 +32,3 @@ runs:
         CODECOV_TOKEN: ${{ inputs.CODECOV_TOKEN }}
       with:
         file: ./coverage.xml
-      shell: bash
