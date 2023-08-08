@@ -166,5 +166,5 @@ if __name__ == "__main__":
     trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=4))
 
     # save the model
-    trainer.save_checkpoint("best_model.ckpt")
+    trainer.save_checkpoint("model.ckpt")
     export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=True)

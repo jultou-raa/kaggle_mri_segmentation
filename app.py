@@ -23,7 +23,7 @@ def device():
 
 @st.cache_resource
 def load_model():
-    return UNet.load_from_checkpoint("best_model.ckpt", n_classes=1).to(device())
+    return UNet.load_from_checkpoint("model.ckpt", n_classes=1).to(device())
 
 
 def eval_model(model):

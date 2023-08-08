@@ -189,7 +189,7 @@ def training_pipeline(
     )
 
     # save the model
-    trainer.save_checkpoint("best_model.ckpt")
+    trainer.save_checkpoint("model.ckpt")
     export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=False)
 
 
