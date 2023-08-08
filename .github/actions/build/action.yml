@@ -29,6 +29,7 @@ runs:
       env:
         KAGGLE_USERNAME: ${{ inputs.KAGGLE_USERNAME }}
         KAGGLE_KEY: ${{ inputs.KAGGLE_KEY }}
+      shell: bash
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
