@@ -1,29 +1,25 @@
 name: Lint
 
-on:
-  workflow_call:
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U .[setup]
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U .[setup]
+    - name: Lint code
+      run: pylint demo --output-format=text > pylint_output.txt
 
-      - name: Lint code
-        run: pylint demo --output-format=text > pylint_output.txt
-
-      - name: Generate badge
-        run: |
-          pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' pylint_output.txt)
-          anybadge --value=$pylint_note --file=pylint_note.svg pylint_note
+    - name: Generate badge
+      run: |
+        pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' pylint_output.txt)
+        anybadge --value=$pylint_note --file=pylint_note.svg pylint_note

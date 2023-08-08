@@ -1,31 +1,28 @@
 name: Codecov
 
-on:
-  workflow_call:
+runs:
+  using: "composite"
 
-jobs:
-  codecov:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U .[setup]
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U .[setup]
 
-      - name: Run tests with coverage
-        run: pytest --cov=demo tests/
+    - name: Run tests with coverage
+      run: pytest --cov=demo tests/
 
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        env:
-            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          file: ./coverage.xml
+    - name: Upload coverage report to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        file: ./coverage.xml
