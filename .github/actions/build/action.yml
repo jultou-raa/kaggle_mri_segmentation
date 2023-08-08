@@ -2,15 +2,33 @@ name: Build & Deploy Docker image
 
 inputs:
   username:
-     required: true
+    required: true
   password:
-     required: true
+    required: true
+  KAGGLE_USERNAME:
+    required: true
+  KAGGLE_KEY:
+    required: true
 
 runs:
   using: composite
   steps:
     - name: Checkout
       uses: actions/checkout@v3
+    - name: Download Kaggle data
+      run: |
+        apt-get install unzip
+        cd data
+        kaggle datasets download -d mateuszbuda/lgg-mri-segmentation
+        unzip lgg-mri-segmentation.zip
+        rm lgg-mri-segmentation.zip
+        rm -rf lgg-mri-segmentation
+        mv kaggle_3m/* .
+        rmdir kaggle_3m
+        cd ..
+      env:
+        KAGGLE_USERNAME: ${{ inputs.KAGGLE_USERNAME }}
+        KAGGLE_KEY: ${{ inputs.KAGGLE_KEY }}
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
