@@ -3,14 +3,10 @@
 """This file handles the pytorch lightning model and its training."""
 
 import lightning as pl
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
-from pytorch_lightning.callbacks import Callback
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchmetrics.functional.image import \
-    multiscale_structural_similarity_index_measure
 
 
 class UNet(pl.LightningModule):
