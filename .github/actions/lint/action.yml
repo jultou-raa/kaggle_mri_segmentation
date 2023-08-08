@@ -15,11 +15,14 @@ runs:
       run: |
         python -m pip install --upgrade pip
         pip install -U .[setup]
+      shell: bash
 
     - name: Lint code
       run: pylint demo --output-format=text > pylint_output.txt
+      shell: bash
 
     - name: Generate badge
       run: |
         pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' pylint_output.txt)
         anybadge --value=$pylint_note --file=pylint_note.svg pylint_note
+      shell: bash
