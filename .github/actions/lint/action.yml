@@ -19,7 +19,7 @@ runs:
 
     - name: Lint code
       run: |
-        mkdir -m ~/results/
+        mkdir -p ~/results/
         pylint demo --output-format=text > ~/results/pylint_output.txt
       shell: bash
 
