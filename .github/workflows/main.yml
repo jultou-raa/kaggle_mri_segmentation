@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Lint code
-        uses: ./actions/lint.yml
+        uses: ./.github/actions/lint
 
   codecov:
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Run tests & codecov
-        uses: ./actions/codecov.yml
+        uses: ./.github/actions/codecov
 
   build:
     runs-on: ubuntu-latest
@@ -29,5 +29,4 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Build code
-        uses: ./actions/build.yml
-
+        uses: ./.github/actions/build
