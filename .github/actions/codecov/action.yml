@@ -23,7 +23,7 @@ runs:
       shell: bash
 
     - name: Run tests with coverage
-      run: pytest --cov=demo tests/
+      run: pytest --cov=demo
       shell: bash
 
     - name: Upload coverage report to Codecov

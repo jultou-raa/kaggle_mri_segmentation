@@ -13,3 +13,5 @@ lightning_logs/**/*.*
 *.onnx
 
 .vscode/*
+.coverage
+*.txt
