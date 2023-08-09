@@ -19,8 +19,9 @@ runs:
 
     - name: Lint code
       run: |
-        touch pylint_output.txt
-        pylint $(git ls-files '*.py') --output=pylint_output.txt
+        whoami
+        ls -l
+        python -m pylint $(git ls-files '*.py') --output=pylint_output.txt
       shell: bash
 
     - name: Generate badge
