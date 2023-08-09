@@ -19,18 +19,18 @@ runs:
 
     - name: Lint code
       run: |
-        mkdir -p ~/results/
-        pylint --output-format=text:~/results/pylint_output.txt demo
+        touch pylint_output.txt
+        pylint $(git ls-files '*.py') --output=pylint_output.txt
       shell: bash
 
     - name: Generate badge
       run: |
-        pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' ~/results/pylint_output.txt)
-        anybadge --value=$pylint_note --file=~/results/pylint_note.svg pylint_note
+        pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' pylint_output.txt)
+        anybadge --value=$pylint_note --file=pylint_note.svg pylint_note
       shell: bash
 
     - name: Archive badge
       uses: actions/upload-artifact@v3
       with:
         name: pylint_note
-        path: ~/results/pylint_note.svg
+        path: pylint_note.svg
