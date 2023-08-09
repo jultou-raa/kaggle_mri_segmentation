@@ -7,15 +7,15 @@ runs:
       uses: actions/checkout@v3
 
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v3
       with:
         python-version: "3.10"
 
     - name: Install dependencies & Lint code
       run: |
-        ${pythonLocation} -m pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install -U .[setup]
-        ${pythonLocation} -m pylint $(git ls-files '*.py') --output=pylint_output.txt
+        python -m pylint $(git ls-files '*.py') --output=pylint_output.txt
       shell: bash
 
     - name: Generate badge
