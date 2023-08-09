@@ -20,7 +20,7 @@ runs:
     - name: Lint code
       run: |
         mkdir -p ~/results/
-        pylint demo --output-format=text:~/results/pylint_output.txt
+        pylint --output-format=text:~/results/pylint_output.txt demo
       shell: bash
 
     - name: Generate badge
