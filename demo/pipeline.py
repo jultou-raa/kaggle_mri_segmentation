@@ -142,8 +142,10 @@ def training_pipeline(
     study_path: pathlib.Path,
     num_workers=1,
     num_nodes=1,
+    devices=1,
     batch_size=32,
     max_epochs=5,
+    max_time=None,
     learning_rate=0.001,
     auto_lr=True,
     strategy="auto",
@@ -167,6 +169,8 @@ def training_pipeline(
         strategy=strategy,
         num_nodes=num_nodes,
         max_epochs=max_epochs,
+        devices=devices,
+        max_time=max_time,
     )
 
     if auto_lr:
