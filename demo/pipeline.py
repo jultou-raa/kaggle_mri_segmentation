@@ -236,6 +236,6 @@ if __name__ == "__main__":
     training_pipeline(
         study_path=pathlib.Path(__file__).parent.parent / "data",
         batch_size=3,
-        max_epochs=75,
+        max_epochs=5,
         num_workers=6,
     )

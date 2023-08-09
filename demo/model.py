@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from demo.metrics import dice_loss, bce_dice_loss
 
 
 class UNet(pl.LightningModule):
@@ -19,21 +20,25 @@ class UNet(pl.LightningModule):
         self.learning_rate = learning_rate
 
         # Convolutional layers
-        self.conv_down1 = self._double_conv(3, 64)
-        self.conv_down2 = self._double_conv(64, 128)
-        self.conv_down3 = self._double_conv(128, 256)
-        self.conv_down4 = self._double_conv(256, 512)
+        self.conv_down1 = self._double_conv(3, 32)
+        self.conv_down2 = self._double_conv(32, 64)
+        self.conv_down3 = self._double_conv(64, 128)
+        self.conv_down4 = self._double_conv(128, 256)
+        self.conv_down5 = self._double_conv(256, 512)
 
         # Upsampling layers
         self.upsampler = nn.Upsample(
             scale_factor=2, mode="bilinear", align_corners=True
         )
 
-        self.conv_up3 = self._double_conv(256 + 512, 256)
-        self.conv_up2 = self._double_conv(128 + 256, 128)
-        self.conv_up1 = self._double_conv(128 + 64, 64)
+        self.conv_up4 = self._double_conv(256 + 512, 256)
+        self.conv_up3 = self._double_conv(128 + 256, 128)
+        self.conv_up2 = self._double_conv(64 + 128, 64)
+        self.conv_up1 = self._double_conv(32 + 64, 32)
 
-        self.last_conv = nn.Conv2d(64, n_classes, kernel_size=1)
+        self.last_conv = nn.Conv2d(32, n_classes, kernel_size=1)
+
+        self.dropout = nn.Dropout2d()
 
         # Activation functions
         self.maxpool = nn.MaxPool2d(2)
@@ -41,28 +46,12 @@ class UNet(pl.LightningModule):
     def _double_conv(self, in_channels, out_channels):
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.GroupNorm(num_groups=32, num_channels=out_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, 3, padding=1),
+            nn.GroupNorm(num_groups=32, num_channels=out_channels),
             nn.ReLU(inplace=True),
         )
-
-    @staticmethod
-    def _dice_loss(y_pred, y_true, smooth=1):
-        # Flatten predictions and labels
-        y_pred = y_pred.view(-1)
-        y_true = y_true.view(-1)
-
-        # Calculate intersection and union
-        intersection = (y_pred * y_true).sum()
-        union = y_pred.sum() + y_true.sum()
-
-        # Calculate Dice coefficient
-        dice = (2.0 * intersection + smooth) / (union + smooth)
-
-        # Calculate Dice loss
-        loss = 1.0 - dice
-
-        return loss
 
     def configure_callbacks(self):
         return [
@@ -71,14 +60,21 @@ class UNet(pl.LightningModule):
         ]
 
     def forward(self, x):
+        # Encoder
         conv1 = self.conv_down1(x)
         x = self.maxpool(conv1)
         conv2 = self.conv_down2(x)
         x = self.maxpool(conv2)
         conv3 = self.conv_down3(x)
         x = self.maxpool(conv3)
-        x = self.conv_down4(x)
+        conv4 = self.conv_down4(x)
+        x = self.maxpool(conv4)
+        x = self.conv_down5(x)
 
+        # Decoder
+        x = self.upsampler(x)
+        x = torch.cat([x, conv4], dim=1)
+        x = self.conv_up4(x)
         x = self.upsampler(x)
         x = torch.cat([x, conv3], dim=1)
         x = self.conv_up3(x)
@@ -88,6 +84,7 @@ class UNet(pl.LightningModule):
         x = self.upsampler(x)
         x = torch.cat([x, conv1], dim=1)
         x = self.conv_up1(x)
+        x = self.dropout(x)
 
         x = self.last_conv(x)
         x = torch.sigmoid(x)
@@ -97,22 +94,33 @@ class UNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self._dice_loss(y_hat, y.unsqueeze(1))
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        dice_loss_ = dice_loss(y_hat, y.unsqueeze(1))
+        dsc = 1 - dice_loss_
+        loss = bce_dice_loss(y_hat, y.unsqueeze(1))
+        self.log("train_dsc", dsc, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("train_loss", loss, on_epoch=True, prog_bar=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = self._dice_loss(y_hat, y.unsqueeze(1))
-        self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        dice_loss_ = dice_loss(y_hat, y.unsqueeze(1))
+        dsc = 1 - dice_loss_
+        loss = bce_dice_loss(y_hat, y.unsqueeze(1))
+        self.log("val_dsc", dsc, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("val_loss", loss, on_epoch=True, prog_bar=True, sync_dist=True)
+        return loss
 
     def test_step(self, batch, batch_idx):
         # this is the test loop
         x, y = batch
         y_hat = self(x)
-        loss = self._dice_loss(y_hat, y.unsqueeze(1))
-        self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        dice_loss_ = dice_loss(y_hat, y.unsqueeze(1))
+        dsc = 1 - dice_loss_
+        loss = bce_dice_loss(y_hat, y.unsqueeze(1))
+        self.log("test_dsc", dsc, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("test_loss", loss, on_epoch=True, prog_bar=True, sync_dist=True)
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adamax(self.parameters(), lr=self.learning_rate)
