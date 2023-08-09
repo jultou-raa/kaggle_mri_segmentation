@@ -13,7 +13,5 @@ RUN pip install -U .
 # Expose the port that Streamlit runs on
 EXPOSE 80
 
-ENV STREAMLIT_SERVER_PORT 80
-
 # Run app.py when the container launches
-CMD ["streamlit", "run", "app.py", "--server.address", "0.0.0.0"]
+CMD ["streamlit", "run", "app.py"]
