@@ -37,7 +37,7 @@ def test_TCIADataset():
     nb_images = 5
     TCIADataset(
         [torch.rand(3, 256, 256)] * nb_images, [torch.rand(1, 256, 256)] * nb_images
-    )
+    )[0]
     TCIADataset(
         [torch.rand(3, 256, 256)] * nb_images,
         [torch.rand(1, 256, 256)] * nb_images,
@@ -50,4 +50,4 @@ def test_TCIADataset():
     )
 
 if __name__ == "__main__":
-    test_backward()
+    test_TCIADataset()
