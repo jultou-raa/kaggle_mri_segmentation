@@ -20,7 +20,7 @@ runs:
 
     - name: Generate badge
       run: |
-        pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' pylint_output.txt)
+        pylint_note=$(grep -oP '(?<=rated at ).*(?=/10)' pylint.txt)
         anybadge --value=$pylint_note --file=pylint_note.svg pylint_note
       shell: bash
 
