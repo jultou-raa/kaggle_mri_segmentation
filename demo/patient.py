@@ -133,7 +133,7 @@ class Patient:
             col=2,
         )
 
-        fig.update_layout(yaxis={"scaleanchor":"x"})
+        fig.update_layout(yaxis={"scaleanchor": "x"})
 
         return fig
 

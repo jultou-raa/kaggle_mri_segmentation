@@ -2,7 +2,19 @@
 
 """This file handles the dataset classes"""
 
+import torch
 from torch.utils.data import Dataset
+
+
+class RandomTensorDataset(Dataset):
+    def __init__(self, size):
+        self.size = size
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, idx):
+        return torch.rand(3, 256, 256), torch.rand(256, 256)
 
 
 class TCIADataset(Dataset):
