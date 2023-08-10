@@ -2,9 +2,12 @@
 """This file handles the loss functions used in models"""
 
 import torch
-import torch.nn as nn
+from torch import nn
 
-def dice_loss(y_pred: torch.Tensor, y_true: torch.Tensor, smooth: float=1):
+
+def dice_loss(y_pred: torch.Tensor, y_true: torch.Tensor, smooth: float = 1):
+    """Computes the DICE loss."""
+
     # Flatten predictions and labels
     y_pred = y_pred.view(-1)
     y_true = y_true.view(-1)
@@ -19,9 +22,11 @@ def dice_loss(y_pred: torch.Tensor, y_true: torch.Tensor, smooth: float=1):
     # Return Dice loss
     return 1.0 - dice
 
-def bce_dice_loss(y_pred: torch.Tensor, y_true: torch.Tensor, smooth: float=1):
 
-    #BCE loss expected Float dtype input
+def bce_dice_loss(y_pred: torch.Tensor, y_true: torch.Tensor, smooth: float = 1):
+    """Compute the combined Binary Cross Entropy and DICE loss."""
+
+    # BCE loss expected Float dtype input
     y_pred = y_pred.to(torch.float32, copy=True)
     y_true = y_true.to(torch.float32, copy=True)
     # Calculate BCE loss

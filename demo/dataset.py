@@ -1,5 +1,7 @@
 # coding: utf-8
 
+"""This file handles the dataset classes"""
+
 from torch.utils.data import Dataset
 
 

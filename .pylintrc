@@ -1,0 +1,35 @@
+[MASTER]
+
+# Specify a configuration file.
+rcfile = .pylintrc
+
+# Check for undefined names.
+# NOTE: This is a good idea to have enabled, but it can be noisy if you're
+# importing a lot of third-party libraries.
+init-hook = import sys; sys.path.append('.')
+
+# Specify the maximum line length.
+max-line-length = 88
+
+# Disable some rules that are too strict or not applicable to all projects.
+disable =
+    # Too strict.
+    C0301,
+    W0221,
+    C0412,  # Managed by isort
+    W1203, # No lazy % formatting in logging
+    R0914, # To many local variables
+
+[MESSAGES CONTROL]
+
+# Enable some additional messages that are not enabled by default.
+# NOTE: These are just a few examples, there are many more messages that
+# you can enable.
+enable =
+    # Check for trailing whitespace.
+    trailing-whitespace,
+
+[REPORTS]
+
+# Set the fail-under threshold to 4.
+fail-under = 4

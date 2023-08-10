@@ -5,7 +5,6 @@
 import concurrent.futures
 import logging
 import pathlib
-import queue
 import re
 
 from demo.patient import Patient
@@ -30,11 +29,11 @@ class Study:
 
     @property
     def count_positive_mri(self):
-        return sum([patient.count_positive_mri for patient in self.patient_list])
+        return sum((patient.count_positive_mri for patient in self.patient_list))
 
     @property
     def count_negative_mri(self):
-        return sum([patient.count_negative_mri for patient in self.patient_list])
+        return sum((patient.count_negative_mri for patient in self.patient_list))
 
     def create_patient_database(self) -> list[Patient]:
         """For each subfolders in data, create a list of Patient."""
@@ -80,6 +79,6 @@ class Study:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    database_path = pathlib.Path(__file__).parent.parent / "data"
-    study = Study(database_path)
+    data_path = pathlib.Path(__file__).parent.parent / "data"
+    study = Study(data_path)
     print(study)

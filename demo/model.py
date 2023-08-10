@@ -4,10 +4,11 @@
 
 import lightning as pl
 import torch
-import torch.nn as nn
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
+from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from demo.metrics import dice_loss, bce_dice_loss
+
+from demo.metrics import bce_dice_loss, dice_loss
 
 
 class UNet(pl.LightningModule):
@@ -59,65 +60,65 @@ class UNet(pl.LightningModule):
             LearningRateMonitor("epoch"),
         ]
 
-    def forward(self, x):
+    def forward(self, input_tensor):
         # Encoder
-        conv1 = self.conv_down1(x)
-        x = self.maxpool(conv1)
-        conv2 = self.conv_down2(x)
-        x = self.maxpool(conv2)
-        conv3 = self.conv_down3(x)
-        x = self.maxpool(conv3)
-        conv4 = self.conv_down4(x)
-        x = self.maxpool(conv4)
-        x = self.conv_down5(x)
+        conv1 = self.conv_down1(input_tensor)
+        transformed_tensor = self.maxpool(conv1)
+        conv2 = self.conv_down2(transformed_tensor)
+        transformed_tensor = self.maxpool(conv2)
+        conv3 = self.conv_down3(transformed_tensor)
+        transformed_tensor = self.maxpool(conv3)
+        conv4 = self.conv_down4(transformed_tensor)
+        transformed_tensor = self.maxpool(conv4)
+        transformed_tensor = self.conv_down5(transformed_tensor)
 
         # Decoder
-        x = self.upsampler(x)
-        x = torch.cat([x, conv4], dim=1)
-        x = self.conv_up4(x)
-        x = self.upsampler(x)
-        x = torch.cat([x, conv3], dim=1)
-        x = self.conv_up3(x)
-        x = self.upsampler(x)
-        x = torch.cat([x, conv2], dim=1)
-        x = self.conv_up2(x)
-        x = self.upsampler(x)
-        x = torch.cat([x, conv1], dim=1)
-        x = self.conv_up1(x)
-        x = self.dropout(x)
+        transformed_tensor = self.upsampler(transformed_tensor)
+        transformed_tensor = torch.cat([transformed_tensor, conv4], dim=1)
+        transformed_tensor = self.conv_up4(transformed_tensor)
+        transformed_tensor = self.upsampler(transformed_tensor)
+        transformed_tensor = torch.cat([transformed_tensor, conv3], dim=1)
+        transformed_tensor = self.conv_up3(transformed_tensor)
+        transformed_tensor = self.upsampler(transformed_tensor)
+        transformed_tensor = torch.cat([transformed_tensor, conv2], dim=1)
+        transformed_tensor = self.conv_up2(transformed_tensor)
+        transformed_tensor = self.upsampler(transformed_tensor)
+        transformed_tensor = torch.cat([transformed_tensor, conv1], dim=1)
+        transformed_tensor = self.conv_up1(transformed_tensor)
+        transformed_tensor = self.dropout(transformed_tensor)
 
-        x = self.last_conv(x)
-        x = torch.sigmoid(x)
+        transformed_tensor = self.last_conv(transformed_tensor)
+        transformed_tensor = torch.sigmoid(transformed_tensor)
 
-        return x
+        return transformed_tensor
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        dice_loss_ = dice_loss(y_hat, y.unsqueeze(1))
+        input_tensor, mask_tensor = batch
+        y_hat = self(input_tensor)
+        dice_loss_ = dice_loss(y_hat, mask_tensor.unsqueeze(1))
         dsc = 1 - dice_loss_
-        loss = bce_dice_loss(y_hat, y.unsqueeze(1))
+        loss = bce_dice_loss(y_hat, mask_tensor.unsqueeze(1))
         self.log("train_dsc", dsc, on_epoch=True, prog_bar=True, sync_dist=True)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        dice_loss_ = dice_loss(y_hat, y.unsqueeze(1))
+        input_tensor, mask_tensor = batch
+        y_hat = self(input_tensor)
+        dice_loss_ = dice_loss(y_hat, mask_tensor.unsqueeze(1))
         dsc = 1 - dice_loss_
-        loss = bce_dice_loss(y_hat, y.unsqueeze(1))
+        loss = bce_dice_loss(y_hat, mask_tensor.unsqueeze(1))
         self.log("val_dsc", dsc, on_epoch=True, prog_bar=True, sync_dist=True)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, sync_dist=True)
         return loss
 
     def test_step(self, batch, batch_idx):
         # this is the test loop
-        x, y = batch
-        y_hat = self(x)
-        dice_loss_ = dice_loss(y_hat, y.unsqueeze(1))
+        input_tensor, mask_tensor = batch
+        y_hat = self(input_tensor)
+        dice_loss_ = dice_loss(y_hat, mask_tensor.unsqueeze(1))
         dsc = 1 - dice_loss_
-        loss = bce_dice_loss(y_hat, y.unsqueeze(1))
+        loss = bce_dice_loss(y_hat, mask_tensor.unsqueeze(1))
         self.log("test_dsc", dsc, on_epoch=True, prog_bar=True, sync_dist=True)
         self.log("test_loss", loss, on_epoch=True, prog_bar=True, sync_dist=True)
         return loss
@@ -130,49 +131,3 @@ class UNet(pl.LightningModule):
             "monitor": "val_loss",
         }
         return [optimizer], [lr_scheduler]
-
-
-if __name__ == "__main__":
-    import pathlib
-
-    from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-    from lightning.pytorch.tuner.tuning import Tuner
-    from torch.onnx import export
-    from torch.utils.data import DataLoader
-
-    from demo.pipeline import pre_treatement_pipeline
-    from demo.study import Study
-
-    model = UNet(1, 0.001)
-
-    export(model, torch.zeros((1, 3, 256, 256)), "model.onnx", verbose=True)
-
-    study = Study(pathlib.Path(__file__).parent.parent / "data")
-
-    train_dataset, validation_dataset, test_dataset = pre_treatement_pipeline(study)
-
-    train_loader = DataLoader(train_dataset, num_workers=4)
-    validation_loader = DataLoader(validation_dataset, num_workers=4)
-
-    trainer = pl.Trainer(
-        callbacks=[EarlyStopping(monitor="val_loss", mode="min")], max_epochs=5
-    )
-    tuner = Tuner(trainer)
-
-    # finds learning rate automatically
-    # sets hparams.lr or hparams.learning_rate to that learning rate
-    tuner.lr_find(
-        model, train_dataloaders=train_loader, val_dataloaders=validation_loader
-    )
-
-    # Train the model
-    trainer.fit(
-        model=model, train_dataloaders=train_loader, val_dataloaders=validation_loader
-    )
-
-    # test the model
-    trainer.test(model=model, dataloaders=DataLoader(test_dataset, num_workers=4))
-
-    # save the model
-    trainer.save_checkpoint("model.ckpt")
-    export(model, torch.zeros((1, 3, 256, 256)), "model_trained.onnx", verbose=True)

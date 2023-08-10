@@ -49,6 +49,14 @@ class Patient:
         return natsort.natsorted(self._mri_images)
 
     @property
+    def mri_images_data(self):
+        return self._mri_images_data
+
+    @property
+    def mri_masks_data(self):
+        return self._mri_masks_data
+
+    @property
     def mri_masks(self) -> list[pathlib.Path]:
         return natsort.natsorted(self._mri_masks)
 
@@ -125,7 +133,7 @@ class Patient:
             col=2,
         )
 
-        fig.update_layout(yaxis=dict(scaleanchor="x"))
+        fig.update_layout(yaxis={"scaleanchor":"x"})
 
         return fig
 

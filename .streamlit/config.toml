@@ -1,12 +1,3 @@
-[general]
-email = "julientou@gmail.com"
-# Set the page title
-page_title = "Demo MRI Segmentation"
-# Set the page icon
-page_icon = "🔬"
-# Set the default Streamlit theme
-theme = "light"
-
 [server]
 # Set the port number
 port = 80

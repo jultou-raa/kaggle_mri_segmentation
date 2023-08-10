@@ -50,8 +50,13 @@ def show_results(show, mri, mask, mask_predicted, patient, cut_number):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+
+    st.set_page_config(
+        page_title = "Demo MRI Segmentation",
+        page_icon = "🔬",
+    )
     
-    st.title("MRI Cancer diagnostic")
+    st.title("MRI Cancer diagnostic [![Repo](https://badgen.net/badge/icon/GitHub?icon=github&label)](https://github.com/jultou-raa/kaggle_mri_segmentation)")
     st.write(":warning: This is a demo of the MRI Cancer diagnostic app.")
 
     st.header("Study data")
@@ -72,15 +77,15 @@ if __name__ == "__main__":
 
     patient = study.patient_list[patient_list.index(patient)]
 
-    tensor_dataset = TCIADataset(patient._mri_images_data, patient._mri_masks_data, transform=val_transformer())
+    tensor_dataset = TCIADataset(patient.mri_images_data, patient.mri_masks_data, transform=val_transformer())
 
     slider = st.empty()
     animate = st.button('Animate')
     
     cut_number = slider.slider("Cut to see :", 0, len(patient.mri_images)-1, step=1)
 
-    mri = patient._mri_images_data[cut_number]
-    mask = patient._mri_masks_data[cut_number]
+    mri = patient.mri_images_data[cut_number]
+    mask = patient.mri_masks_data[cut_number]
 
     mask_predicted = numpy.zeros_like(mask)
     if model is not None:
@@ -105,7 +110,7 @@ if __name__ == "__main__":
                     mask_predicted = eval_model(model)
                     # Convert to 8-bit single-channel image
                     mask_predicted = mask_predicted.astype(numpy.uint8)*255
-            images = show_results(show, patient._mri_images_data[i], patient._mri_masks_data[i], mask_predicted, patient, i)
+            images = show_results(show, patient.mri_images_data[i], patient.mri_masks_data[i], mask_predicted, patient, i)
             slider.slider("Cut to see :", 0, len(patient.mri_images)-1, step=1, value=i, key=f"slider{i}")
             sleep(3)
    
