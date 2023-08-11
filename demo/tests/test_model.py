@@ -27,9 +27,7 @@ def test_backward():
         train_dataloaders=DataLoader(dataset),
         val_dataloaders=DataLoader(dataset),
     )
-    trainer.test(
-        model=model, 
-        dataloaders=DataLoader(dataset))
+    trainer.test(model=model, dataloaders=DataLoader(dataset))
     assert trainer.logged_metrics["test_loss"] < 100
 
 
@@ -48,6 +46,7 @@ def test_TCIADataset():
         [torch.rand(1, 256, 256)] * nb_images,
         transform=val_transformer(),
     )
+
 
 if __name__ == "__main__":
     test_TCIADataset()

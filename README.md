@@ -1,3 +1,7 @@
+[![codecov](https://codecov.io/gh/jultou-raa/kaggle_mri_segmentation/branch/main/graph/badge.svg?token=JSLZ4167JI)](https://codecov.io/gh/jultou-raa/kaggle_mri_segmentation)
+![CI](https://github.com/jultou-raa/kaggle_mri_segmentation/actions/workflows/main.yml/badge.svg?event=push)
+[![Try](https://img.shields.io/badge/Azure%20-%20Try%20it%20out%20!%20-%20green?logo=microsoftazure&logoColor=%230078D4&label=Azure&labelColor=lightgrey&color=green)](http://demomri.azurewebsites.net)
+
 # MRI Segmentation with Pytorch (Demo code)
 
 This repository contains code and data for a Kaggle competition on brain tumor segmentation using MRI images. The goal is to develop a machine learning model that can automatically segment the tumor region from the surrounding healthy tissue in MRI scans of patients with low-grade gliomas (LGG).
@@ -28,6 +32,51 @@ The application is deployed using Docker, a tool that allows users to run applic
 4. Open your web browser and go to http://localhost to access the application.
 5. Wait for the model to load the database and process MRI scan then it will display the results.
 
+## Model
+
+The model used is the Modified UNet described in the paper :
+
+>Zeineldin, R.A., Karar, M.E., Coburger, J. et al. DeepSeg: deep neural network framework for automatic brain tumor segmentation using magnetic resonance FLAIR images. Int J CARS 15, 909–920 (2020). https://doi.org/10.1007/s11548-020-02186-z
+
+The training is done using the [Pytorch Lightning][Lightning] framework and 2 [Nvdidia T4 GPU][Nvdidia_T4_GPU].
+
+You can train again by your own after installing this package and using this snippet :
+
+1. `pip install -U git+https://github.com/jultou-raa/kaggle_mri_segmentation.git#egg=demo`
+
+2. Execute the following code :
+    ```python
+    import pathlib
+    from demo.pipeline import training_pipeline
+
+    base_dir = pathlib.Path("/path/to/dataset")
+
+    training_pipeline(
+        study_path=base_dir,
+        num_nodes=1,
+        devices=2,
+        max_time="00:10:00:00",
+        num_workers=2,
+        strategy='ddp_notebook', # Only when executing on notebook
+        batch_size=24,
+        auto_lr=False,
+        max_epochs=225)
+    ```
+
+    This call will train the model and save it to the current directory as `model.cpkt`. You will be able to use it with the folowing snippet :
+    
+    ```python
+    from demo.model import UNet
+
+    model = UNet.load_from_checkpoint("model.ckpt", n_classes=1)
+    ```
+
+To avoid overfitting, an EarlyStopping callback is used with a patience of 10 epochs.
+
+Also, a learning rate scheduler ([ReduceLROnPlateau][ReduceLROnPlateau]) is used to reduce the learning rate by a factor of 0.1 when the validation loss is not improving for 5 epochs.
+
+The validation loss used is a mix between the Dice loss and the BCE loss.
+
 ## License
 
 This project is licensed under the GNU General Public License v3 (GPLv3) - see the [LICENSE][LICENSE] file for details.
@@ -35,3 +84,6 @@ This project is licensed under the GNU General Public License v3 (GPLv3) - see t
 [dataset_kaggle]: https://www.kaggle.com/mateuszbuda/lgg-mri-segmentation
 [install_docker]: https://docs.docker.com/get-docker/
 [LICENSE]: https://github.com/jultou-raa/kaggle_mri_segmentation/blob/main/LICENSE
+[ReduceLROnPlateau]: https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html
+[Nvdidia_T4_GPU]: https://www.nvidia.com/en-us/data-center/tesla-t4/
+[Lightning]: https://www.lightning.ai/
